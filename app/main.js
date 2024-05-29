@@ -20,4 +20,8 @@ const server = net.createServer((socket) => {
     });
 });
 
-server.listen(4221, "localhost");
+server.listen(4221, "localhost", () => {
+
+    process.stdout.write("Listening on localhost:4221");
+
+});
