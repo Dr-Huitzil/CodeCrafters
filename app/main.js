@@ -18,7 +18,12 @@ const server = net.createServer((socket) => {
 
             socket.write(httpResponse);
 
-        } else {
+        }
+        else if (URL.includes("/echo/"){
+            const content = url.split("/echo/")[1];
+            socket.write(`HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\nContent-Length: ${content.length}\r\n\r\n${content}`)
+        }
+        else {
 
             const httpResponse = 'HTTP/1.1 404 Not Found\r\n\r\n';
 
