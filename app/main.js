@@ -7,17 +7,29 @@ console.log("Logs from your program will appear here!");
 const server = net.createServer((socket) => {
 
     socket.on('data', (data) => {
+
         const request = data.toString();
 
-        if (request.startsWith('GET /')) {
+        if (request.startsWith('GET / ')) {
+
+
+
             const httpResponse = 'HTTP/1.1 200 OK\r\n\r\n';
+
             socket.write(httpResponse);
+
         } else {
-            const httpResponse = 'HTTP/1.1 404 Not Found\r\n\r\n';
+
+            const httpResponse = 'HTTP/1.1 404 NOT FOUND\r\n\r\n';
+
             socket.write(httpResponse);
+
         }
+
         socket.end();
+
     });
+
 });
 
 server.listen(4221, "localhost", () => {
