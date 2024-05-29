@@ -1,44 +1,57 @@
 const net = require("net");
 
-// You can use print statements as follows for debugging, they'll be visible when running tests.
-console.log("Logs from your program will appear here!");
-
-// Uncomment this to pass the first stage
 const server = net.createServer((socket) => {
 
-    socket.on('data', (data) => {
+    //Request
+
+    socket.on("data", (data) => {
 
         const request = data.toString();
 
-        if (request.startsWith('GET / ')) {
+        console.log("Request: \n" + request);
 
+        const url = request.split(' ')[1];
 
+        if (url == "/") {
 
-            const httpResponse = 'HTTP/1.1 200 OK\r\n\r\n';
+            socket.write("HTTP/1.1 200 OK\r\n\r\n");
 
-            socket.write(httpResponse);
+        } else if (url.includes("/echo/")) {
+
+            const content = url.split('/echo/')[1];
+
+            socket.write(`HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\nContent-Length: ${content.length}\r\n\r\n${content}`);
+
+        } else {
+
+            socket.write("HTTP/1.1 404 Not Found\r\n\r\n");
 
         }
-        else if (URL.includes("/echo/"){
-            const content = url.split("/echo/")[1];
-            socket.write(`HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\nContent-Length: ${content.length}\r\n\r\n${content}`)
-        }
-        else {
 
-            const httpResponse = 'HTTP/1.1 404 Not Found\r\n\r\n';
+    });
 
-            socket.write(httpResponse);
+    //Error Handling
 
-        }
+    socket.on("error", (e) => {
+
+        console.error("ERROR: " + e);
 
         socket.end();
+
+        socket.close();
+
+    });
+
+    //Closing
+
+    socket.on("close", () => {
+
+        socket.end();
+
+        server.close();
 
     });
 
 });
 
-server.listen(4221, "localhost", () => {
-
-    process.stdout.write("Listening on localhost:4221");
-
-});
+server.listen(4221, "localhost");
