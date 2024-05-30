@@ -1,83 +1,105 @@
+const net = require("net");
+
 const fs = require("fs");
 
-const net = require("net");
+// You can use print statements as follows for debugging, they'll be visible when running tests.
 
 console.log("Logs from your program will appear here!");
 
-const server = net.createServer((socket) => {
+const flags = process.argv.slice(2);
 
-    socket.on("close", () => {
+const directory = flags.find((_, index) => flags[index - 1] == "--directory");
 
-        socket.end();
+// Uncomment this to pass the first stage
 
-    });
+const handleConnection = (socket) => {
 
     socket.on("data", (data) => {
 
-        const req = data.toString();
+        const [request, host, agent] = data.toString().split("\r\n");
 
-        console.log(req);
+        const [method, path, version] = request.split(" ");
 
-        const path = req.split(" ")[1];
+        if (method === "GET") {
 
-        if (path === "/") socket.write("HTTP/1.1 200 OK\r\n\r\n");
+            if (path === "/") {
 
-        else if (path === "/user-agent") {
+                socket.write("HTTP/1.1 200 OK\r\n\r\n");
 
-    else if (path.startsWith("/files/")) {
+                return;
 
-            const directory = process.argv[3];
+            } else if (path.startsWith("/echo/")) {
 
-            const filename = path.split("/files/")[1];
+                const pathParameter = path.replace("/echo/", "");
 
-            if (fs.existsSync(`${directory}/${filename}`)) {
+                socket.write(`HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\nContent-Length: ${pathParameter.length}\r\n\r\n${pathParameter}`);
 
-                const content = fs.readFileSync(`${directory}/${filename}`).toString();
+            } else if (path.startsWith("/user-agent")) {
 
-                const res = `HTTP/1.1 200 OK\r\nContent-Type: application/octet-stream\r\nContent-Length: ${content.length}\r\n\r\n${content}\r\n`;
+                const userAgent = agent.replace("User-Agent: ", "");
 
-                socket.write(res);
+                socket.write(`HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\nContent-Length: ${userAgent.length}\r\n\r\n${userAgent}`);
 
-            } else {
+            } else if (path.startsWith("/files/")) {
 
-                socket.write("HTTP/1.1 404 Not Found\r\n\r\n");
+                const filePath = path.slice(7);
 
-            }
+                if (!fs.existsSync(directory + filePath)) {
 
-        } else if (path === "/user-agent") {
+                    socket.write("HTTP/1.1 404 Not Found\r\n\r\n");
 
-            req.split("\r\n").forEach((line) => {
+                    socket.end();
 
-                if (line.includes("User-Agent")) {
-
-                    const res = line.split(" ")[1];
-
-                    socket.write(
-
-                        `HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\nContent-Length: ${res.length}\r\n\r\n${res}\r\n`
-
-                    );
+                    return;
 
                 }
 
-            });
+                const file = fs.readFileSync(directory + filePath);
 
-        } else if (path.startsWith("/echo/")) {
+                socket.write(`HTTP/1.1 200 OK\r\nContent-Type: application/octet-stream\r\nContent-Length: ${file.length}\r\n\r\n${file}`);
 
-            const res = path.split("/echo/")[1];
+            }
 
-            socket.write(
+            socket.write("HTTP/1.1 404 NOT FOUND\r\n\r\n");
 
-                `HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\nContent-Length: ${res.length}\r\n\r\n${res}\r\n\r`
+            socket.end();
 
-            );
+        }
 
-        } else socket.write("HTTP/1.1 404 Not Found\r\n\r\n");
+    });
 
-        socket.end();
+    // Handle closing the connection
+
+    socket.on("end", () => {
+
+        console.log("Client disconnected");
+
+    });
+
+};
+
+const server = net.createServer((socket) => {
+
+    handleConnection(socket);
+
+});
+
+server.listen(4221, "localhost");
+
+// Handle Ctrl+C to gracefully shutdown the server
+
+process.on("SIGINT", () => {
+
+    console.log("Server shutting down...");
+
+    server.close(() => {
+
+        console.log("Server closed.");
+
+        process.exit(0);
 
     });
 
 });
 
-server.listen(4221, "localhost");
+\ No newline at end of file
