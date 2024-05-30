@@ -1,48 +1,46 @@
 const net = require("net");
 
-const server = net.createServer((socket) => {
+// You can use print statements as follows for debugging, they'll be visible when running tests.
 
-    //Request
+console.log("Logs from your program will appear here!");
+
+const server = net.createServer((socket) => {
 
     socket.on("data", (data) => {
 
-        const request = data.toString();
+        const requestData = data.toString();
 
-        console.log("Request: \n" + request);
+        const requestLines = requestData.split("\r\n");
 
-        const url = request.split(' ')[1];
+        const [method, path, protocol] = requestLines[0].split(" ");
 
-        if (url == "/") {
+        let response;
 
-            socket.write("HTTP/1.1 200 OK\r\n\r\n");
+        if (path === "/") {
 
-        } else if (url.includes("/echo/")) {
+            response = "HTTP/1.1 200 OK\r\nContent-Length: 0\r\n\r\n";
 
-            const content = url.split('/echo/')[1];
+        } else if (path === "/user-agent") {
 
-            socket.write(`HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\nContent-Length: ${content.length}\r\n\r\n${content}`);
+            const userAgent = requestLines[2].split(" ")[1];
+
+            response = `HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\nContent-Length: ${userAgent.length}\r\n\r\n${userAgent}`;
+
+        } else if (path.startsWith("/echo/")) {
+
+            const randomString = path.split("/echo/")[1];
+
+            response = `HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\nContent-Length: ${randomString.length}\r\n\r\n${randomString}`;
 
         } else {
 
-            socket.write("HTTP/1.1 404 Not Found\r\n\r\n");
+            response = "HTTP/1.1 404 Not Found\r\nContent-Length: 0\r\n\r\n";
 
         }
 
-    });
-
-    //Error Handling
-
-    socket.on("error", (e) => {
-
-        console.error("ERROR: " + e);
-
-        socket.end();
-
-        socket.close();
+        socket.write(response);
 
     });
-
-    //Closing
 
     socket.on("close", () => {
 
