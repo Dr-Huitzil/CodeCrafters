@@ -101,5 +101,3 @@ process.on("SIGINT", () => {
     });
 
 });
-
-\ No newline at end of file
