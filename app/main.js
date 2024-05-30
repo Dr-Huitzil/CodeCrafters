@@ -44,7 +44,6 @@ const server = net.createServer((socket) => {
 
         if (
 
-
             (requestType === "GET" && validGETPaths.includes(path[0])) ||
 
             (requestType === "POST" && validPOSTPaths.includes(path[0]))
@@ -89,9 +88,17 @@ function buildResponse(path, requestBody, type, headers) {
 
     let status = HTTP_NOT_FOUND;
 
-    if (validEncoding.includes(getHeader(headers, "Accept-Encoding"))) {
+    encodings = getHeader(headers, "Accept-Encoding")?.split(",") || [];
 
-        responseHeaders += `Content-Encoding: ${getHeader(headers, "Accept-Encoding")}\r\n`;
+    for (let encoding of encodings) {
+
+        if (validEncoding.includes(encoding.trim())) {
+
+            responseHeaders += `Content-Encoding: ${encoding}\r\n`;
+
+            break;
+
+        }
 
     }
 
