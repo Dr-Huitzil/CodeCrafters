@@ -1,26 +1,30 @@
+const fs = require("fs");
+
 const net = require("net");
 
-const server = net.createServer((socket) => {
+console.log("Logs from your program will appear here!");
 
-    //Request
+Expand 9 lines
 
-    socket.on("data", (data) => {
+const path = req.split(" ")[1];
 
-        const request = data.toString();
+if (path === "/") socket.write("HTTP/1.1 200 OK\r\n\r\n");
 
-        console.log("Request: \n" + request);
+else if (path === "/user-agent") {
 
-        const url = request.split(' ')[1];
+    else if (path.startsWith("/files/")) {
 
-        if (url == "/") {
+        const directory = process.argv[3];
 
-            socket.write("HTTP/1.1 200 OK\r\n\r\n");
+        const filename = path.split("/files/")[1];
 
-        } else if (url.includes("/echo/")) {
+        if (fs.existsSync(`${directory}/${filename}`)) {
 
-            const content = url.split('/echo/')[1];
+            const content = fs.readFileSync(`${directory}/${filename}`).toString();
 
-            socket.write(`HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\nContent-Length: ${content.length}\r\n\r\n${content}`);
+            const res = `HTTP/1.1 200 OK\r\nContent-Type: application/octet-stream\r\nContent-Length: ${content.length}\r\n\r\n${content}\r\n`;
+
+            socket.write(res);
 
         } else {
 
@@ -28,29 +32,39 @@ const server = net.createServer((socket) => {
 
         }
 
-    });
+    } else if (path === "/user-agent") {
 
-    //Error Handling
+        req.split("\r\n").forEach((line) => {
 
-    socket.on("error", (e) => {
+            if (line.includes("User-Agent")) {
 
-        console.error("ERROR: " + e);
+                const res = line.split(" ")[1];
 
-        socket.end();
+                socket.write(
 
-        socket.close();
+                    `HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\nContent-Length: ${res.length}\r\n\r\n${res}\r\n`
 
-    });
+                );
 
-    //Closing
+            }
 
-    socket.on("close", () => {
+        });
 
-        socket.end();
+    } else if (path.startsWith("/echo/")) {
 
-        server.close();
+        const res = path.split("/echo/")[1];
 
-    });
+        socket.write(
+
+            `HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\nContent-Length: ${res.length}\r\n\r\n${res}\r\n\r`
+
+        );
+
+    } else socket.write("HTTP/1.1 404 Not Found\r\n\r\n");
+
+    socket.end();
+
+});
 
 });
 
