@@ -1,71 +1,89 @@
+const net = require("net");
+
 const fs = require("fs");
 
-const net = require("net");
+// You can use print statements as follows for debugging, they'll be visible when running tests.
 
 console.log("Logs from your program will appear here!");
 
+const flags = process.argv.slice(2);
+
+const directory = flags.find((_, index) => flags[index - 1] == "--directory");
+
+// Uncomment this to pass the first stage
+
+const handleConnection = (socket) => {
+
+    socket.on("data", (data) => {
+
 Expand 9 lines
 
-const path = req.split(" ")[1];
+    }else if (path.startsWith("/user-agent")) {
 
-if (path === "/") socket.write("HTTP/1.1 200 OK\r\n\r\n");
+        const userAgent = agent.replace("User-Agent: ", "");
 
-else if (path === "/user-agent") {
+        socket.write(`HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\nContent-Length: ${userAgent.length}\r\n\r\n${userAgent}`);
 
-    else if (path.startsWith("/files/")) {
+    } else if (path.startsWith("/files/")) {
 
-        const directory = process.argv[3];
+        const filePath = path.slice(7);
 
-        const filename = path.split("/files/")[1];
-
-        if (fs.existsSync(`${directory}/${filename}`)) {
-
-            const content = fs.readFileSync(`${directory}/${filename}`).toString();
-
-            const res = `HTTP/1.1 200 OK\r\nContent-Type: application/octet-stream\r\nContent-Length: ${content.length}\r\n\r\n${content}\r\n`;
-
-            socket.write(res);
-
-        } else {
+        if (!fs.existsSync(directory + filePath)) {
 
             socket.write("HTTP/1.1 404 Not Found\r\n\r\n");
 
+            socket.end();
+
+            return;
+
         }
 
-    } else if (path === "/user-agent") {
+        const file = fs.readFileSync(directory + filePath);
 
-        req.split("\r\n").forEach((line) => {
+        socket.write(`HTTP/1.1 200 OK\r\nContent-Type: application/octet-stream\r\nContent-Length: ${file.length}\r\n\r\n${file}`);
 
-            if (line.includes("User-Agent")) {
+    }
 
-                const res = line.split(" ")[1];
-
-                socket.write(
-
-                    `HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\nContent-Length: ${res.length}\r\n\r\n${res}\r\n`
-
-                );
-
-            }
-
-        });
-
-    } else if (path.startsWith("/echo/")) {
-
-        const res = path.split("/echo/")[1];
-
-        socket.write(
-
-            `HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\nContent-Length: ${res.length}\r\n\r\n${res}\r\n\r`
-
-        );
-
-    } else socket.write("HTTP/1.1 404 Not Found\r\n\r\n");
+    socket.write("HTTP/1.1 404 NOT FOUND\r\n\r\n");
 
     socket.end();
 
+}
+
+    });
+
+// Handle closing the connection
+
+socket.on("end", () => {
+
+    console.log("Client disconnected");
+
 });
+
+};
+
+const server = net.createServer((socket) => {
+
+    handleConnection(socket);
 
 });
 
 server.listen(4221, "localhost");
+
+// Handle Ctrl+C to gracefully shutdown the server
+
+process.on("SIGINT", () => {
+
+    console.log("Server shutting down...");
+
+    server.close(() => {
+
+        console.log("Server closed.");
+
+        process.exit(0);
+
+    });
+
+});
+
+\ No newline at end of file
